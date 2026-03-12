@@ -26,6 +26,12 @@ class Author(Base):
         index=True,
         nullable=False,
     )
+    name_normalised: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
     arxiv_ids: Mapped[list[str] | None] = mapped_column(
         ARRAY(String),
         nullable=True,
