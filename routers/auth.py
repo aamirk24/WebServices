@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_active_user
+from app.limiter import limiter
 from crud.users import create_user, get_user_by_email, get_user_by_id
 from models.user import APIKey, User
 
@@ -31,7 +32,6 @@ from services.auth import (
 )
 
 
-
 router = APIRouter()
 
 
@@ -40,7 +40,9 @@ router = APIRouter()
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("60/minute")
 async def register(
+    request: Request,
     user_create: UserCreate,
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
@@ -63,7 +65,9 @@ async def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("60/minute")
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ) -> Token:
@@ -100,7 +104,9 @@ async def login(
 
 
 @router.post("/refresh", response_model=Token)
+@limiter.limit("60/minute")
 async def refresh_access_token(
+    request: Request,
     token_data: RefreshTokenRequest,
     db: AsyncSession = Depends(get_db),
 ) -> Token:
@@ -152,7 +158,9 @@ async def refresh_access_token(
     )
 
 @router.get("/me", response_model=UserResponse)
+@limiter.limit("60/minute")
 async def get_me(
+    request: Request,
     current_user: User = Depends(get_current_active_user),
 ) -> UserResponse:
     """
@@ -163,12 +171,15 @@ async def get_me(
     """
     return current_user
 
+
 @router.post(
     "/api-keys",
     response_model=APIKeyResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("60/minute")
 async def create_api_key(
+    request: Request,
     api_key_create: APIKeyCreate,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
@@ -202,7 +213,9 @@ async def create_api_key(
     "/api-keys",
     response_model=list[APIKeyListItem],
 )
+@limiter.limit("60/minute")
 async def list_api_keys(
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[APIKeyListItem]:
@@ -224,7 +237,9 @@ async def list_api_keys(
     "/api-keys/{api_key_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@limiter.limit("60/minute")
 async def revoke_api_key(
+    request: Request,
     api_key_id: uuid.UUID,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
