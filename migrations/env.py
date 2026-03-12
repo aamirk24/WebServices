@@ -10,9 +10,13 @@ from alembic import context
 from app.config import get_settings
 from app.database import Base
 
+import models
+from pgvector.sqlalchemy import Vector
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
 settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
@@ -31,6 +35,12 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+def render_item(type_, obj, autogen_context):
+    if type_ == "type" and isinstance(obj, Vector):
+        autogen_context.imports.add("from pgvector.sqlalchemy import Vector")
+        return f"Vector({obj.dim})"
+    return False
 
 
 def run_migrations_offline() -> None:
@@ -52,6 +62,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        render_item=render_item,
     )
 
     with context.begin_transaction():
@@ -63,6 +74,7 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection, 
         target_metadata=target_metadata,
         compare_type=True,
+        render_item=render_item,
     )
 
     with context.begin_transaction():
