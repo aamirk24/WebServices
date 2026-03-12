@@ -35,3 +35,7 @@ class APIKeyCreate(BaseModel):
 class APIKeyResponse(BaseModel):
     name: str
     key: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
