@@ -27,6 +27,10 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
 class APIKeyCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     scopes: list[str] = Field(default_factory=list)
@@ -37,5 +41,12 @@ class APIKeyResponse(BaseModel):
     key: str
 
 
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+class APIKeyListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    scopes: list[str] | None
+    created_at: datetime
+    last_used_at: datetime | None
+    is_active: bool

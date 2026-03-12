@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from crud.users import get_user_by_id
-from models.user import User
-from services.auth import decode_token
+from models.user import APIKey, User
+from services.auth import decode_token, hash_api_key
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -51,3 +53,38 @@ async def get_current_active_user(
             detail="Inactive user",
         )
     return current_user
+
+
+async def verify_api_key(
+    x_api_key: str = Header(...),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """
+    Authenticate a request using an API key from the X-API-Key header.
+
+    Hashes the incoming raw key, looks up the stored hash, checks that the
+    key is active, updates last_used_at, and returns the associated active user.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or inactive API key",
+    )
+
+    key_hash = hash_api_key(x_api_key)
+
+    result = await db.execute(
+        select(APIKey).where(APIKey.key_hash == key_hash)
+    )
+    api_key = result.scalar_one_or_none()
+
+    if api_key is None or not api_key.is_active:
+        raise credentials_exception
+
+    user = await get_user_by_id(db, api_key.user_id)
+    if user is None or not user.is_active:
+        raise credentials_exception
+
+    api_key.last_used_at = datetime.now(UTC)
+    await db.commit()
+
+    return user

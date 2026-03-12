@@ -2,19 +2,37 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from crud.users import create_user, get_user_by_email, get_user_by_id
-from schemas.auth import RefreshTokenRequest, Token, UserCreate, UserResponse
-from services.auth import create_access_token, create_refresh_token, verify_password, decode_token
-
 from app.dependencies import get_current_active_user
-from models.user import User
+from crud.users import create_user, get_user_by_email, get_user_by_id
+from models.user import APIKey, User
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+from schemas.auth import (
+    APIKeyCreate,
+    APIKeyListItem,
+    APIKeyResponse,
+    RefreshTokenRequest,
+    Token,
+    UserCreate,
+    UserResponse,
+)
+
+from services.auth import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    generate_api_key,
+    verify_password,
+)
+
+
+
+router = APIRouter()
 
 
 @router.post(
@@ -144,3 +162,93 @@ async def get_me(
     for verifying that JWT-based auth works end-to-end.
     """
     return current_user
+
+@router.post(
+    "/api-keys",
+    response_model=APIKeyResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_api_key(
+    api_key_create: APIKeyCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIKeyResponse:
+    """
+    Create a new API key for the authenticated user.
+
+    The raw API key is returned exactly once in this response and is never
+    stored in plain text. Only its SHA-256 hash is stored in the database.
+    """
+    raw_key, key_hash = generate_api_key()
+
+    api_key = APIKey(
+        name=api_key_create.name,
+        key_hash=key_hash,
+        user_id=current_user.id,
+        scopes=api_key_create.scopes,
+        is_active=True,
+    )
+
+    db.add(api_key)
+    await db.commit()
+
+    return APIKeyResponse(
+        name=api_key.name,
+        key=raw_key,
+    )
+
+
+@router.get(
+    "/api-keys",
+    response_model=list[APIKeyListItem],
+)
+async def list_api_keys(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[APIKeyListItem]:
+    """
+    List API keys for the authenticated user.
+
+    Returns metadata only. The raw key and stored key hash are never exposed.
+    """
+    result = await db.execute(
+        select(APIKey)
+        .where(APIKey.user_id == current_user.id)
+        .order_by(APIKey.created_at.desc())
+    )
+    api_keys = result.scalars().all()
+    return list(api_keys)
+
+
+@router.delete(
+    "/api-keys/{api_key_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def revoke_api_key(
+    api_key_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """
+    Revoke an API key owned by the authenticated user.
+
+    This marks the key as inactive so it can no longer be used.
+    """
+    result = await db.execute(
+        select(APIKey).where(
+            APIKey.id == api_key_id,
+            APIKey.user_id == current_user.id,
+        )
+    )
+    api_key = result.scalar_one_or_none()
+
+    if api_key is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found",
+        )
+
+    api_key.is_active = False
+    await db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
