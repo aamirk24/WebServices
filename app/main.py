@@ -8,6 +8,8 @@ from slowapi.errors import RateLimitExceeded
 from routers.auth import router as auth_router
 from app.limiter import limiter
 
+from routers.crawl import router as crawl_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,3 +43,4 @@ async def health_check(request: Request):
     return {"status": "ok"}
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+app.include_router(crawl_router, prefix="/crawl", tags=["Crawling"])
