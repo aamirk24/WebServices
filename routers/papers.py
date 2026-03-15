@@ -112,18 +112,23 @@ async def get_paper_citations_endpoint(
     combined: list[CitationPaperResponse] = []
 
     for cited_by_paper in incoming:
-        item = CitationPaperResponse.model_validate(cited_by_paper)
-        item.direction = "cited_by"
+        base_item = PaperResponse.model_validate(cited_by_paper)
+        item = CitationPaperResponse(
+            **base_item.model_dump(),
+            direction="cited_by",
+        )
         item.links = build_links(cited_by_paper.id, str(request.base_url))
         combined.append(item)
 
     for referenced_paper in outgoing:
-        item = CitationPaperResponse.model_validate(referenced_paper)
-        item.direction = "references"
+        base_item = PaperResponse.model_validate(referenced_paper)
+        item = CitationPaperResponse(
+            **base_item.model_dump(),
+            direction="references",
+        )
         item.links = build_links(referenced_paper.id, str(request.base_url))
         combined.append(item)
 
-    # deterministic ordering
     combined.sort(key=lambda item: (item.direction, item.title.lower()))
 
     total = len(combined)
