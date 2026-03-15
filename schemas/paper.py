@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from schemas.utils import HalResponse
 
-class PaperResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+
+class PaperResponse(HalResponse):
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )
 
     id: uuid.UUID
     arxiv_id: str
@@ -26,6 +32,36 @@ class PaperList(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     items: list[PaperResponse]
+    total: int
+    page: int
+    size: int
+
+
+class CitationPaperResponse(PaperResponse):
+    direction: Literal["cited_by", "references"]
+
+
+class CitationPaperList(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    items: list[CitationPaperResponse]
+    total: int
+    page: int
+    size: int
+
+
+class PaperAuthorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    position: int
+
+
+class PaperAuthorList(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    items: list[PaperAuthorResponse]
     total: int
     page: int
     size: int

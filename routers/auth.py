@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_active_user
 from app.limiter import limiter
-from crud.users import create_user, get_user_by_email, get_user_by_id
+from crud.users import create_user, get_user_by_email, get_user_by_id, get_user_by_username
 from models.user import APIKey, User
 
 from schemas.auth import (
@@ -46,18 +46,18 @@ async def register(
     user_create: UserCreate,
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-    """
-    Register a new user account.
-
-    Validates that the email is not already in use, hashes the password,
-    creates the user in the database, and returns the created user without
-    exposing any password fields.
-    """
-    existing_user = await get_user_by_email(db, user_create.email)
-    if existing_user is not None:
+    existing_email = await get_user_by_email(db, user_create.email)
+    if existing_email is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email is already registered",
+        )
+
+    existing_username = await get_user_by_username(db, user_create.username)
+    if existing_username is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username is already taken",
         )
 
     user = await create_user(db, user_create)
