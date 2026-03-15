@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,14 +10,21 @@ from routers.auth import router as auth_router
 from app.limiter import limiter
 
 from routers.crawl import router as crawl_router
+from app.scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic goes here
-    yield
-    # Shutdown logic goes here
+    start_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler()
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s:%(name)s:%(message)s",
+)
 
 app = FastAPI(
     title="ScholarGraph API",
