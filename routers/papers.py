@@ -13,6 +13,7 @@ from crud.papers import (
     get_paper_references,
     get_papers,
     get_papers_citing_paper,
+    get_ranked_papers,
 )
 from schemas.paper import (
     CitationPaperList,
@@ -21,6 +22,8 @@ from schemas.paper import (
     PaperAuthorResponse,
     PaperList,
     PaperResponse,
+    RankedPaperList,
+    RankedPaperResponse,
 )
 from schemas.utils import build_links
 
@@ -65,6 +68,43 @@ async def list_papers(
         size=size,
     )
 
+@router.get("/ranked", response_model=RankedPaperList)
+async def get_ranked_papers_endpoint(
+    request: Request,
+    category: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> RankedPaperList:
+    """
+    Return top papers by PageRank score.
+
+    Query params:
+    - category: optional category/topic filter
+    - limit: top N papers to return (default 20, max 100)
+    """
+    papers = await get_ranked_papers(
+        db=db,
+        category=category,
+        limit=limit,
+    )
+
+    items: list[RankedPaperResponse] = []
+    for idx, paper in enumerate(papers, start=1):
+        base_item = PaperResponse.model_validate(paper)
+        item = RankedPaperResponse(
+            **base_item.model_dump(),
+            rank=idx,
+        )
+        item.links = build_links(paper.id, str(request.base_url))
+        items.append(item)
+
+    return RankedPaperList(
+        items=items,
+        total=len(items),
+        limit=limit,
+        category=category,
+    )
+    
 
 @router.get("/{paper_id}", response_model=PaperResponse)
 async def get_paper_by_id(

@@ -29,3 +29,14 @@ class AuthorDetailResponse(BaseModel):
     paper_count: int
     avg_pagerank_score: float | None
     papers: list[PaperResponse]
+
+
+class AuthorImpactResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    total_papers: int
+    total_citations_received: int
+    avg_pagerank_score: float | None
+    top_papers: list[PaperResponse]

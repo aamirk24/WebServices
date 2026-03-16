@@ -6,8 +6,19 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from crud.authors import get_author_papers, get_author_with_stats, get_authors_with_stats
-from schemas.author import AuthorDetailResponse, AuthorListItem, AuthorListResponse
+from crud.authors import ( 
+    get_author_papers, 
+    get_author_with_stats, 
+    get_authors_with_stats,
+    get_author_top_papers_by_pagerank, 
+    get_author_total_citations_received
+)
+from schemas.author import (
+    AuthorDetailResponse, 
+    AuthorListItem, 
+    AuthorListResponse, 
+    AuthorImpactResponse
+)
 from schemas.paper import PaperResponse
 from schemas.utils import build_links
 
@@ -65,4 +76,45 @@ async def get_author_by_id(
         paper_count=int(paper_count),
         avg_pagerank_score=float(avg_pagerank_score) if avg_pagerank_score is not None else None,
         papers=paper_items,
+    )
+
+@router.get("/{author_id}/impact", response_model=AuthorImpactResponse)
+async def get_author_impact(
+    author_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> AuthorImpactResponse:
+    """
+    Return author citation analytics:
+    - total papers
+    - total citations received
+    - top 5 papers by pagerank_score
+    - average pagerank across all papers
+    """
+    row = await get_author_with_stats(db, author_id)
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Author with id '{author_id}' was not found.",
+        )
+
+    author, paper_count, avg_pagerank_score = row
+
+    total_citations_received = await get_author_total_citations_received(db, author_id)
+    top_papers = await get_author_top_papers_by_pagerank(db, author_id, limit=5)
+
+    paper_items: list[PaperResponse] = []
+    for paper in top_papers:
+        item = PaperResponse.model_validate(paper)
+        item.links = build_links(paper.id, str(request.base_url))
+        paper_items.append(item)
+
+    return AuthorImpactResponse(
+        id=author.id,
+        name=author.name,
+        total_papers=int(paper_count),
+        total_citations_received=total_citations_received,
+        avg_pagerank_score=float(avg_pagerank_score) if avg_pagerank_score is not None else None,
+        top_papers=paper_items,
     )

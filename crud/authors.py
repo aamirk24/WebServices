@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.author import Author, PaperAuthor
 from models.paper import Paper
+from models.citation import Citation
 
 
 async def get_authors_with_stats(
@@ -77,6 +78,49 @@ async def get_author_papers(
             desc(Paper.published_date),
             desc(Paper.created_at),
         )
+    )
+
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def get_author_total_citations_received(
+    db: AsyncSession,
+    author_id: uuid.UUID,
+) -> int:
+    """
+    Return the total number of citations received across all papers by this author.
+    """
+    stmt = (
+        select(func.count(Citation.id))
+        .select_from(Paper)
+        .join(PaperAuthor, PaperAuthor.paper_id == Paper.id)
+        .outerjoin(Citation, Citation.cited_paper_id == Paper.id)
+        .where(PaperAuthor.author_id == author_id)
+    )
+
+    result = await db.execute(stmt)
+    return int(result.scalar_one() or 0)
+
+
+async def get_author_top_papers_by_pagerank(
+    db: AsyncSession,
+    author_id: uuid.UUID,
+    limit: int = 5,
+) -> list[Paper]:
+    """
+    Return the author's top papers by pagerank_score descending.
+    """
+    stmt = (
+        select(Paper)
+        .join(PaperAuthor, PaperAuthor.paper_id == Paper.id)
+        .where(PaperAuthor.author_id == author_id)
+        .order_by(
+            Paper.pagerank_score.desc(),
+            Paper.published_date.desc(),
+            Paper.created_at.desc(),
+        )
+        .limit(limit)
     )
 
     result = await db.execute(stmt)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -123,6 +123,39 @@ async def get_paper_authors(
         .options(selectinload(PaperAuthor.author))
         .where(PaperAuthor.paper_id == paper_id)
         .order_by(PaperAuthor.position.asc())
+    )
+
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def get_ranked_papers(
+    db: AsyncSession,
+    category: str | None = None,
+    limit: int = 20,
+) -> list[Paper]:
+    """
+    Return top papers ranked by pagerank_score descending.
+
+    Optional category filter matches either primary_category or membership in
+    all_categories.
+    """
+    stmt = select(Paper)
+
+    if category:
+        stmt = stmt.where(
+            or_(
+                Paper.primary_category == category,
+                Paper.all_categories.any(category),
+            )
+        )
+
+    stmt = (
+        stmt.order_by(
+            desc(Paper.pagerank_score),
+            Paper.title.asc(),
+        )
+        .limit(limit)
     )
 
     result = await db.execute(stmt)

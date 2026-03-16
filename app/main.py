@@ -15,6 +15,7 @@ from routers.auth import router as auth_router
 from routers.authors import router as authors_router
 from routers.crawl import router as crawl_router
 from routers.papers import router as papers_router
+from routers.analytics import router as analytics_router
 
 
 def _infer_resource(path: str) -> str:
@@ -183,3 +184,4 @@ app.include_router(crawl_router, prefix="/crawl", tags=["Crawling"])
 app.include_router(papers_router, prefix="/papers", tags=["Papers"])
 app.include_router(annotations_router, tags=["Annotations"])
 app.include_router(authors_router, prefix="/authors", tags=["Authors"])
+app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
