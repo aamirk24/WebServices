@@ -17,6 +17,8 @@ from routers.crawl import router as crawl_router
 from routers.papers import router as papers_router
 from routers.analytics import router as analytics_router
 
+from services.embeddings import set_embedding_model_on_app, unload_embedding_model
+
 
 def _infer_resource(path: str) -> str:
     parts = [part for part in path.split("/") if part]
@@ -40,11 +42,13 @@ def _json_error(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    set_embedding_model_on_app(app)
     start_scheduler()
     try:
         yield
     finally:
         stop_scheduler()
+        unload_embedding_model()
 
 
 logging.basicConfig(

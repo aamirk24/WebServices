@@ -18,6 +18,8 @@ from app.limiter import limiter
 from models.paper import Paper
 from models.user import User
 from services.pagerank import run_pagerank
+from services.embeddings import embed_all_papers
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +62,9 @@ class TrendResponse(BaseModel):
     total_points: int
 
 
+class EmbedPapersAcceptedResponse(BaseModel):
+    message: str
+
 async def get_current_admin_user(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
@@ -84,6 +89,21 @@ async def run_pagerank_job() -> None:
             logger.info("Background PageRank finished | result=%r", result)
         except Exception:
             logger.exception("Background PageRank failed")
+
+
+async def run_embed_papers_job() -> None:
+    """
+    Background embedding task.
+
+    Opens its own AsyncSession because request-scoped DB sessions are gone by the
+    time FastAPI runs background tasks.
+    """
+    async with AsyncSessionLocal() as db:
+        try:
+            result = await embed_all_papers(db=db)
+            logger.info("Background paper embedding finished | result=%r", result)
+        except Exception:
+            logger.exception("Background paper embedding failed")
 
 
 @router.post(
@@ -212,4 +232,24 @@ async def get_publication_trend(
         granularity=granularity,
         items=items,
         total_points=len(items),
+    )
+
+
+@router.post(
+    "/embed-papers",
+    response_model=EmbedPapersAcceptedResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+@limiter.limit("30/minute")
+async def start_embed_papers(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_admin_user),
+) -> EmbedPapersAcceptedResponse:
+    """
+    Trigger background embedding for all papers whose abstract_embedding is NULL.
+    """
+    background_tasks.add_task(run_embed_papers_job)
+    return EmbedPapersAcceptedResponse(
+        message="Paper embedding job accepted and started in the background",
     )
