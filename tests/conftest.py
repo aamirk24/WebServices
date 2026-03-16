@@ -1,3 +1,4 @@
+# tests/conftest.py
 from __future__ import annotations
 
 import os
@@ -5,14 +6,15 @@ import uuid
 from datetime import UTC, date, datetime
 
 import httpx
+import pytest
 import pytest_asyncio
 from sqlalchemy import text
-from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.database import Base, get_db
 from app.main import app
@@ -31,36 +33,44 @@ if not TEST_DATABASE_URL:
     )
 
 
-@pytest_asyncio.fixture(scope="session")
-async def test_engine():
+@pytest.fixture(scope="session")
+def test_engine():
     """
     Session-scoped engine for the separate scholargraph_test database.
+
+    Use NullPool in tests to avoid asyncpg pooled connections leaking across
+    event loops or test teardown boundaries.
     """
-    engine = create_async_engine(
+    return create_async_engine(
         TEST_DATABASE_URL,
         future=True,
         poolclass=NullPool,
     )
 
-    async with engine.begin() as conn:
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session", autouse=True)
+async def prepare_test_database(test_engine):
+    """
+    Create the test schema once for the full test session, then drop it at the end.
+    """
+    async with test_engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
 
     try:
-        yield engine
+        yield
     finally:
-        async with engine.begin() as conn:
+        async with test_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
-        await engine.dispose()
+        await test_engine.dispose()
 
 
 async def _truncate_all_tables(engine) -> None:
     """
     Clear all data between tests.
 
-    Since we are using a dedicated scholargraph_test database, truncating tables
-    is simpler and more reliable than sharing one AsyncSession/connection across
-    both tests and app requests.
+    Since this uses a dedicated scholargraph_test database, truncation is simpler
+    and more reliable than nested transactions across app/test sessions.
     """
     table_names = [table.name for table in reversed(Base.metadata.sorted_tables)]
     if not table_names:
@@ -72,23 +82,26 @@ async def _truncate_all_tables(engine) -> None:
         await conn.execute(text(f"TRUNCATE TABLE {joined} RESTART IDENTITY CASCADE"))
 
 
-@pytest_asyncio.fixture
-async def session_factory(test_engine):
+@pytest_asyncio.fixture(autouse=True)
+async def clean_db(test_engine, prepare_test_database):
+    """
+    Automatically reset all tables before and after each test.
+    """
+    await _truncate_all_tables(test_engine)
+    yield
+    await _truncate_all_tables(test_engine)
+
+
+@pytest.fixture
+def session_factory(test_engine):
     """
     Per-test session factory bound to the test engine.
     """
-    await _truncate_all_tables(test_engine)
-
-    SessionLocal = async_sessionmaker(
+    return async_sessionmaker(
         bind=test_engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
-
-    try:
-        yield SessionLocal
-    finally:
-        await _truncate_all_tables(test_engine)
 
 
 @pytest_asyncio.fixture
@@ -98,6 +111,7 @@ async def test_db(session_factory) -> AsyncSession:
     """
     async with session_factory() as session:
         yield session
+        await session.close()
 
 
 @pytest_asyncio.fixture
