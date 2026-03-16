@@ -103,3 +103,17 @@ class RankedPaperList(BaseModel):
     total: int
     limit: int
     category: str | None = None
+
+
+class SemanticSearchPaperResponse(PaperResponse):
+    similarity_score: float
+
+
+class SemanticSearchPaperList(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    items: list[SemanticSearchPaperResponse]
+    total: int
+    limit: int
+    query: str
+    category: str | None = None

@@ -14,6 +14,8 @@ from crud.papers import (
     get_papers,
     get_papers_citing_paper,
     get_ranked_papers,
+    get_similar_papers,
+    semantic_search_papers,
 )
 from schemas.paper import (
     CitationPaperList,
@@ -24,7 +26,10 @@ from schemas.paper import (
     PaperResponse,
     RankedPaperList,
     RankedPaperResponse,
+    SemanticSearchPaperList,
+    SemanticSearchPaperResponse,
 )
+from services.embeddings import generate_embedding
 from schemas.utils import build_links
 
 router = APIRouter()
@@ -103,6 +108,104 @@ async def get_ranked_papers_endpoint(
         total=len(items),
         limit=limit,
         category=category,
+    )
+
+
+@router.get("/search/semantic", response_model=SemanticSearchPaperList)
+async def semantic_search_endpoint(
+    request: Request,
+    q: str = Query(..., min_length=1, description="Semantic search query"),
+    limit: int = Query(default=10, ge=1, le=100),
+    category: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> SemanticSearchPaperList:
+    """
+    Main semantic search endpoint.
+
+    Logic:
+    - embed the query
+    - search papers by vector similarity
+    - optionally filter by category
+    - return the top results with similarity_score
+    """
+    query_vector = generate_embedding(q)
+
+    rows = await semantic_search_papers(
+        db=db,
+        query_vector=query_vector,
+        limit=limit,
+        category=category,
+    )
+
+    items: list[SemanticSearchPaperResponse] = []
+
+    for paper, similarity_score in rows:
+        base_item = PaperResponse.model_validate(paper)
+        item = SemanticSearchPaperResponse(
+            **base_item.model_dump(),
+            similarity_score=similarity_score,
+        )
+        item.links = build_links(paper.id, str(request.base_url))
+        items.append(item)
+
+    return SemanticSearchPaperList(
+        items=items,
+        total=len(items),
+        limit=limit,
+        query=q,
+        category=category,
+    )
+
+
+@router.get("/{paper_id}/similar", response_model=SemanticSearchPaperList)
+async def get_similar_papers_endpoint(
+    paper_id: uuid.UUID,
+    request: Request,
+    limit: int = Query(default=10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> SemanticSearchPaperList:
+    """
+    Find papers similar to a given paper using its stored embedding vector.
+
+    Excludes the source paper itself.
+    """
+    paper = await get_paper(db=db, paper_id=paper_id)
+    if paper is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Paper with id '{paper_id}' was not found.",
+        )
+
+    if paper.abstract_embedding is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Paper with id '{paper_id}' does not have an embedding yet.",
+        )
+
+    rows = await get_similar_papers(
+        db=db,
+        source_paper_id=paper.id,
+        source_vector=list(paper.abstract_embedding),
+        limit=limit,
+    )
+
+    items: list[SemanticSearchPaperResponse] = []
+
+    for similar_paper, similarity_score in rows:
+        base_item = PaperResponse.model_validate(similar_paper)
+        item = SemanticSearchPaperResponse(
+            **base_item.model_dump(),
+            similarity_score=similarity_score,
+        )
+        item.links = build_links(similar_paper.id, str(request.base_url))
+        items.append(item)
+
+    return SemanticSearchPaperList(
+        items=items,
+        total=len(items),
+        limit=limit,
+        query=f"similar_to:{paper_id}",
+        category=None,
     )
     
 
