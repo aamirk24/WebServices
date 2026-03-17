@@ -28,6 +28,7 @@ from schemas.paper import (
     RankedPaperResponse,
     SemanticSearchPaperList,
     SemanticSearchPaperResponse,
+    SemanticSearchQueryParams,
 )
 from services.embeddings import generate_embedding
 from schemas.utils import build_links
@@ -114,27 +115,26 @@ async def get_ranked_papers_endpoint(
 @router.get("/search/semantic", response_model=SemanticSearchPaperList)
 async def semantic_search_endpoint(
     request: Request,
-    q: str = Query(..., min_length=1, description="Semantic search query"),
-    limit: int = Query(default=10, ge=1, le=100),
-    category: str | None = Query(default=None),
+    params: SemanticSearchQueryParams = Depends(),
     db: AsyncSession = Depends(get_db),
 ) -> SemanticSearchPaperList:
     """
     Main semantic search endpoint.
 
     Logic:
+    - sanitize and validate the query through Pydantic
     - embed the query
     - search papers by vector similarity
     - optionally filter by category
     - return the top results with similarity_score
     """
-    query_vector = generate_embedding(q)
+    query_vector = generate_embedding(params.q)
 
     rows = await semantic_search_papers(
         db=db,
         query_vector=query_vector,
-        limit=limit,
-        category=category,
+        limit=params.limit,
+        category=params.category,
     )
 
     items: list[SemanticSearchPaperResponse] = []
@@ -151,9 +151,9 @@ async def semantic_search_endpoint(
     return SemanticSearchPaperList(
         items=items,
         total=len(items),
-        limit=limit,
-        query=q,
-        category=category,
+        limit=params.limit,
+        query=params.q,
+        category=params.category,
     )
 
 

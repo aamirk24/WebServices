@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.config import get_settings
 from app.limiter import limiter
 from app.scheduler import start_scheduler, stop_scheduler
 from routers.annotations import router as annotations_router
@@ -19,6 +20,8 @@ from routers.analytics import router as analytics_router
 
 from services.embeddings import set_embedding_model_on_app, unload_embedding_model
 
+
+settings = get_settings()
 
 def _infer_resource(path: str) -> str:
     parts = [part for part in path.split("/") if part]
@@ -67,11 +70,19 @@ app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten this later for production
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
 
 
 @app.exception_handler(StarletteHTTPException)

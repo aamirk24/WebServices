@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from schemas.utils import HalResponse
+
+
+def _strip_html(text: str) -> str:
+    cleaned = re.sub(r"<[^>]+>", "", text)
+    return cleaned.strip()
 
 
 class PaperResponse(HalResponse):
@@ -72,11 +78,39 @@ class AnnotationCreate(BaseModel):
     body: str
     tags: list[str] = Field(default_factory=list)
 
+    @field_validator("title", "body", mode="before")
+    @classmethod
+    def strip_html_from_text_fields(cls, value: str | None):
+        if value is None:
+            return value
+        return _strip_html(value)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def strip_html_from_tags(cls, value):
+        if value is None:
+            return []
+        return [_strip_html(tag) for tag in value]
+
 
 class AnnotationUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=255)
     body: str | None = None
     tags: list[str] | None = None
+
+    @field_validator("title", "body", mode="before")
+    @classmethod
+    def strip_html_from_text_fields(cls, value: str | None):
+        if value is None:
+            return value
+        return _strip_html(value)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def strip_html_from_tags(cls, value):
+        if value is None:
+            return value
+        return [_strip_html(tag) for tag in value]
 
 
 class AnnotationResponse(BaseModel):
@@ -103,6 +137,17 @@ class RankedPaperList(BaseModel):
     total: int
     limit: int
     category: str | None = None
+
+
+class SemanticSearchQueryParams(BaseModel):
+    q: str = Field(min_length=1)
+    limit: int = Field(default=10, ge=1, le=100)
+    category: str | None = None
+
+    @field_validator("q", mode="before")
+    @classmethod
+    def strip_html_from_query(cls, value: str):
+        return _strip_html(value)
 
 
 class SemanticSearchPaperResponse(PaperResponse):

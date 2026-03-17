@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+import json
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +15,37 @@ class Settings(BaseSettings):
         default=30,
         validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
     )
+
+    environment: str = Field(default="development", validation_alias="ENVIRONMENT")
+    allowed_origins: list[str] = Field(
+        default_factory=lambda: ["*"],
+        validation_alias="ALLOWED_ORIGINS",
+    )
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, value):
+        if value in (None, ""):
+            return ["*"]
+
+        if isinstance(value, str):
+            value = value.strip()
+
+            if value.startswith("["):
+                return json.loads(value)
+
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+        return value
+
+    @model_validator(mode="after")
+    def apply_environment_defaults(self):
+        if self.environment.lower() != "production":
+            self.allowed_origins = ["*"]
+        elif not self.allowed_origins:
+            raise ValueError("ALLOWED_ORIGINS must be set in production")
+
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",
