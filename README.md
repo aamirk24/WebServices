@@ -333,7 +333,7 @@ curl -X POST http://127.0.0.1:8000/auth/api-keys \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "mcp-local",
+    "name": "key_name",
     "scopes": ["papers:read", "analytics:read"]
   }'
 ```
@@ -354,21 +354,21 @@ uv run python mcp_server/server.py
 
 ### 4. Claude Desktop example config
 
-On macOS:
-
-`~/Library/Application Support/Claude/claude_desktop_config.json`
+Edit claude_desktop_config.json
 
 ```json
 {
   "mcpServers": {
     "scholargraph": {
-      "command": "uv",
-      "args": ["run", "python", "mcp_server/server.py"],
+      "command": "/absolute_path_to/scholargraph/.venv/bin/python",
+      "args": [
+        "/absolute_path_to/scholargraph/mcp_server/server.py"
+      ],
       "env": {
-        "SCHOLARGRAPH_API_KEY": "your_raw_api_key_here"
+        "SCHOLARGRAPH_API_KEY": "your_raw_API_KEY_here"
       }
     }
-  }
+  },
 }
 ```
 
@@ -411,12 +411,6 @@ uv run pytest
 uv run pytest --cov=app --cov-report=term-missing
 ```
 
-### Run a single file
-
-```bash
-uv run pytest tests/test_auth.py -v
-```
-
 ### CI Workflow
 
 A GitHub Actions workflow runs tests automatically on push / pull request. The badge at the top of this README reflects the latest status.
@@ -455,21 +449,6 @@ ALLOWED_ORIGINS=["https://scholargraph.onrender.com"]
 - if using Docker, Uvicorn should bind to **`$PORT`**
 - if the app crashes before Uvicorn starts, Render may report **“No open ports detected”** even though the real issue is earlier in startup
 
-### Typical Start Command
-
-```bash
-uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-
-### Common Deployment Problems
-
-| Problem | Likely Cause |
-|---|---|
-| `No open ports detected` | App crashed before Uvicorn started |
-| `No module named psycopg2` | `DATABASE_URL` used plain postgres URL instead of `+asyncpg` |
-| `error parsing value for field "allowed_origins"` | `ALLOWED_ORIGINS` was not provided as valid JSON |
-| CORS still open in production | Middleware still hardcoded to `"*"` instead of using config |
-
 ---
 
 ## Tech Stack with Justifications
@@ -490,37 +469,6 @@ uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port
 | **GitHub Actions** | Automated testing and visible engineering discipline |
 | **MCP** | Allows AI assistants to use ScholarGraph as a tool-based backend |
 | **Render** | Straightforward deployment with managed PostgreSQL |
-
----
-
-## Suggested Demo Flow
-
-If an examiner is looking through the system for the first time, this is the strongest order to follow:
-
-1. Open **`/docs`**
-2. Register a user
-3. Log in
-4. Create an API key
-5. Browse **`/papers`**
-6. Run **semantic search**
-7. Open **similar papers**
-8. View **ranked papers**
-9. Explore **author impact**
-10. Trigger **PageRank recomputation**
-11. Look at the **CI badge** in the README
-12. Open **Claude Desktop** and ask: *“What are the most influential papers in cs.AI?”*  
-    → Claude uses the MCP tool layer and calls the corresponding ScholarGraph tool live
-
-This sequence demonstrates:
-
-- authentication
-- paper discovery
-- semantic retrieval
-- graph analytics
-- author analytics
-- workflow maturity
-- deployment / documentation quality
-- MCP-based AI integration
 
 ---
 
