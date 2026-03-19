@@ -65,6 +65,7 @@ class TrendResponse(BaseModel):
 class EmbedPapersAcceptedResponse(BaseModel):
     message: str
 
+
 async def get_current_admin_user(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
@@ -110,6 +111,12 @@ async def run_embed_papers_job() -> None:
     "/pagerank",
     response_model=PageRankAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        202: {"description": "PageRank job accepted and started in the background"},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Admin privileges required"},
+        422: {"description": "Invalid request"},
+    },
 )
 @limiter.limit("60/minute")
 async def start_pagerank(
@@ -133,6 +140,10 @@ async def start_pagerank(
 @router.get(
     "/topics",
     response_model=TopicAnalyticsResponse,
+    responses={
+        200: {"description": "Topic analytics returned successfully"},
+        422: {"description": "Invalid limit parameter"},
+    },
 )
 async def get_topic_analytics(
     limit: int = Query(default=50, ge=1, le=200),
@@ -180,6 +191,10 @@ async def get_topic_analytics(
 @router.get(
     "/trend",
     response_model=TrendResponse,
+    responses={
+        200: {"description": "Publication trend returned successfully"},
+        422: {"description": "Invalid topic or granularity parameter"},
+    },
 )
 async def get_publication_trend(
     topic: str | None = Query(
@@ -239,6 +254,12 @@ async def get_publication_trend(
     "/embed-papers",
     response_model=EmbedPapersAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        202: {"description": "Paper embedding job accepted and started in the background"},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Admin privileges required"},
+        422: {"description": "Invalid request"},
+    },
 )
 @limiter.limit("30/minute")
 async def start_embed_papers(

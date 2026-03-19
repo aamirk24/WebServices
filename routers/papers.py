@@ -36,7 +36,14 @@ from schemas.utils import build_links
 router = APIRouter()
 
 
-@router.get("", response_model=PaperList)
+@router.get(
+    "",
+    response_model=PaperList,
+    responses={
+        200: {"description": "Paginated list of papers returned successfully"},
+        422: {"description": "Invalid pagination or filter parameters"},
+    },
+)
 async def list_papers(
     request: Request,
     category: str | None = Query(default=None),
@@ -74,7 +81,15 @@ async def list_papers(
         size=size,
     )
 
-@router.get("/ranked", response_model=RankedPaperList)
+
+@router.get(
+    "/ranked",
+    response_model=RankedPaperList,
+    responses={
+        200: {"description": "Top ranked papers returned successfully"},
+        422: {"description": "Invalid category or limit parameter"},
+    },
+)
 async def get_ranked_papers_endpoint(
     request: Request,
     category: str | None = Query(default=None),
@@ -112,7 +127,14 @@ async def get_ranked_papers_endpoint(
     )
 
 
-@router.get("/search/semantic", response_model=SemanticSearchPaperList)
+@router.get(
+    "/search/semantic",
+    response_model=SemanticSearchPaperList,
+    responses={
+        200: {"description": "Semantic search results returned successfully"},
+        422: {"description": "Invalid semantic search query parameters"},
+    },
+)
 async def semantic_search_endpoint(
     request: Request,
     params: SemanticSearchQueryParams = Depends(),
@@ -157,7 +179,16 @@ async def semantic_search_endpoint(
     )
 
 
-@router.get("/{paper_id}/similar", response_model=SemanticSearchPaperList)
+@router.get(
+    "/{paper_id}/similar",
+    response_model=SemanticSearchPaperList,
+    responses={
+        200: {"description": "Similar papers returned successfully"},
+        400: {"description": "Paper exists but does not have an embedding yet"},
+        404: {"description": "Paper not found"},
+        422: {"description": "Invalid paper ID or limit parameter"},
+    },
+)
 async def get_similar_papers_endpoint(
     paper_id: uuid.UUID,
     request: Request,
@@ -207,9 +238,17 @@ async def get_similar_papers_endpoint(
         query=f"similar_to:{paper_id}",
         category=None,
     )
-    
 
-@router.get("/{paper_id}", response_model=PaperResponse)
+
+@router.get(
+    "/{paper_id}",
+    response_model=PaperResponse,
+    responses={
+        200: {"description": "Paper returned successfully"},
+        404: {"description": "Paper not found"},
+        422: {"description": "Invalid paper ID"},
+    },
+)
 async def get_paper_by_id(
     paper_id: uuid.UUID,
     request: Request,
@@ -228,7 +267,15 @@ async def get_paper_by_id(
     return response
 
 
-@router.get("/{paper_id}/citations", response_model=CitationPaperList)
+@router.get(
+    "/{paper_id}/citations",
+    response_model=CitationPaperList,
+    responses={
+        200: {"description": "Citation relationships returned successfully"},
+        404: {"description": "Paper not found"},
+        422: {"description": "Invalid paper ID or pagination parameters"},
+    },
+)
 async def get_paper_citations_endpoint(
     paper_id: uuid.UUID,
     request: Request,
@@ -287,7 +334,15 @@ async def get_paper_citations_endpoint(
     )
 
 
-@router.get("/{paper_id}/authors", response_model=PaperAuthorList)
+@router.get(
+    "/{paper_id}/authors",
+    response_model=PaperAuthorList,
+    responses={
+        200: {"description": "Paper authors returned successfully"},
+        404: {"description": "Paper not found"},
+        422: {"description": "Invalid paper ID or pagination parameters"},
+    },
+)
 async def get_paper_authors_endpoint(
     paper_id: uuid.UUID,
     page: int = Query(default=1, ge=1),

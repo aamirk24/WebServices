@@ -127,6 +127,12 @@ async def run_build_graph_all_job(force_refresh: bool) -> None:
     "",
     response_model=CrawlAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        202: {"description": "Crawl job accepted and started in the background"},
+        401: {"description": "Not authenticated"},
+        403: {"description": "Admin privileges required"},
+        422: {"description": "Invalid crawl request payload"},
+    },
 )
 @limiter.limit("60/minute")
 async def start_crawl(
@@ -155,6 +161,11 @@ async def start_crawl(
     "/seed-foundations",
     response_model=SeedFoundationsAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        202: {"description": "Foundation seeding job accepted and started in the background"},
+        401: {"description": "Not authenticated"},
+        422: {"description": "Invalid top_n parameter"},
+    },
 )
 @limiter.limit("60/minute")
 async def start_seed_foundations(
@@ -187,6 +198,11 @@ async def start_seed_foundations(
     "/build-graph",
     response_model=BuildGraphAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        202: {"description": "Graph build job accepted and started in the background"},
+        401: {"description": "Not authenticated"},
+        422: {"description": "Invalid graph build request payload"},
+    },
 )
 @limiter.limit("60/minute")
 async def start_build_graph(
@@ -212,6 +228,11 @@ async def start_build_graph(
     "/build-graph-all",
     response_model=BuildGraphAllAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        202: {"description": "Full corpus graph build accepted and started in the background"},
+        401: {"description": "Not authenticated"},
+        422: {"description": "Invalid force_refresh parameter"},
+    },
 )
 @limiter.limit("60/minute")
 async def start_build_graph_all(

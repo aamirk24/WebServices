@@ -56,6 +56,12 @@ async def _get_annotation_or_404(
     "/papers/{paper_id}/annotations",
     response_model=AnnotationResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {"description": "Annotation created successfully"},
+        401: {"description": "Not authenticated"},
+        404: {"description": "Paper not found"},
+        422: {"description": "Invalid annotation payload or paper ID"},
+    },
 )
 async def create_annotation(
     paper_id: uuid.UUID,
@@ -88,6 +94,11 @@ async def create_annotation(
 @router.get(
     "/papers/{paper_id}/annotations",
     response_model=list[AnnotationResponse],
+    responses={
+        200: {"description": "Annotations returned successfully"},
+        404: {"description": "Paper not found"},
+        422: {"description": "Invalid paper ID"},
+    },
 )
 async def list_annotations_for_paper(
     paper_id: uuid.UUID,
@@ -113,6 +124,13 @@ async def list_annotations_for_paper(
 @router.put(
     "/annotations/{annotation_id}",
     response_model=AnnotationResponse,
+    responses={
+        200: {"description": "Annotation updated successfully"},
+        401: {"description": "Not authenticated"},
+        403: {"description": "You can only update your own annotations"},
+        404: {"description": "Annotation not found"},
+        422: {"description": "Invalid annotation payload or annotation ID"},
+    },
 )
 async def update_annotation(
     annotation_id: uuid.UUID,
@@ -146,7 +164,15 @@ async def update_annotation(
 
 @router.delete(
     "/annotations/{annotation_id}",
+    response_model=None,
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Annotation deleted successfully"},
+        401: {"description": "Not authenticated"},
+        403: {"description": "You can only delete your own annotations"},
+        404: {"description": "Annotation not found"},
+        422: {"description": "Invalid annotation ID"},
+    },
 )
 async def delete_annotation(
     annotation_id: uuid.UUID,

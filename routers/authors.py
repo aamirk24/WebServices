@@ -6,17 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from crud.authors import ( 
-    get_author_papers, 
-    get_author_with_stats, 
+from crud.authors import (
+    get_author_papers,
+    get_author_with_stats,
     get_authors_with_stats,
-    get_author_top_papers_by_pagerank, 
+    get_author_top_papers_by_pagerank,
     get_author_total_citations_received
 )
 from schemas.author import (
-    AuthorDetailResponse, 
-    AuthorListItem, 
-    AuthorListResponse, 
+    AuthorDetailResponse,
+    AuthorListItem,
+    AuthorListResponse,
     AuthorImpactResponse
 )
 from schemas.paper import PaperResponse
@@ -25,7 +25,13 @@ from schemas.utils import build_links
 router = APIRouter()
 
 
-@router.get("", response_model=AuthorListResponse)
+@router.get(
+    "",
+    response_model=AuthorListResponse,
+    responses={
+        200: {"description": "Authors returned successfully"},
+    },
+)
 async def list_authors(
     db: AsyncSession = Depends(get_db),
 ) -> AuthorListResponse:
@@ -47,7 +53,15 @@ async def list_authors(
     )
 
 
-@router.get("/{author_id}", response_model=AuthorDetailResponse)
+@router.get(
+    "/{author_id}",
+    response_model=AuthorDetailResponse,
+    responses={
+        200: {"description": "Author returned successfully"},
+        404: {"description": "Author not found"},
+        422: {"description": "Invalid author ID"},
+    },
+)
 async def get_author_by_id(
     author_id: uuid.UUID,
     request: Request,
@@ -78,7 +92,16 @@ async def get_author_by_id(
         papers=paper_items,
     )
 
-@router.get("/{author_id}/impact", response_model=AuthorImpactResponse)
+
+@router.get(
+    "/{author_id}/impact",
+    response_model=AuthorImpactResponse,
+    responses={
+        200: {"description": "Author impact analytics returned successfully"},
+        404: {"description": "Author not found"},
+        422: {"description": "Invalid author ID"},
+    },
+)
 async def get_author_impact(
     author_id: uuid.UUID,
     request: Request,

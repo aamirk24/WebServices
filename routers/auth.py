@@ -39,6 +39,11 @@ router = APIRouter()
     "/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {"description": "User registered successfully"},
+        400: {"description": "Email already registered or username already taken"},
+        422: {"description": "Invalid registration payload"},
+    },
 )
 @limiter.limit("60/minute")
 async def register(
@@ -64,7 +69,15 @@ async def register(
     return user
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    responses={
+        200: {"description": "Authentication succeeded and tokens were issued"},
+        401: {"description": "Invalid credentials or inactive user"},
+        422: {"description": "Invalid login form payload"},
+    },
+)
 @limiter.limit("60/minute")
 async def login(
     request: Request,
@@ -103,7 +116,15 @@ async def login(
     )
 
 
-@router.post("/refresh", response_model=Token)
+@router.post(
+    "/refresh",
+    response_model=Token,
+    responses={
+        200: {"description": "Access token refreshed successfully"},
+        401: {"description": "Invalid or expired refresh token"},
+        422: {"description": "Invalid refresh token payload"},
+    },
+)
 @limiter.limit("60/minute")
 async def refresh_access_token(
     request: Request,
@@ -157,7 +178,15 @@ async def refresh_access_token(
         token_type="bearer",
     )
 
-@router.get("/me", response_model=UserResponse)
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    responses={
+        200: {"description": "Authenticated user returned successfully"},
+        401: {"description": "Not authenticated"},
+    },
+)
 @limiter.limit("60/minute")
 async def get_me(
     request: Request,
@@ -176,6 +205,11 @@ async def get_me(
     "/api-keys",
     response_model=APIKeyResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {"description": "API key created successfully"},
+        401: {"description": "Not authenticated"},
+        422: {"description": "Invalid API key payload"},
+    },
 )
 @limiter.limit("60/minute")
 async def create_api_key(
@@ -212,6 +246,10 @@ async def create_api_key(
 @router.get(
     "/api-keys",
     response_model=list[APIKeyListItem],
+    responses={
+        200: {"description": "API keys returned successfully"},
+        401: {"description": "Not authenticated"},
+    },
 )
 @limiter.limit("60/minute")
 async def list_api_keys(
@@ -235,7 +273,14 @@ async def list_api_keys(
 
 @router.delete(
     "/api-keys/{api_key_id}",
+    response_model=None,
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "API key revoked successfully"},
+        401: {"description": "Not authenticated"},
+        404: {"description": "API key not found"},
+        422: {"description": "Invalid API key ID"},
+    },
 )
 @limiter.limit("60/minute")
 async def revoke_api_key(
