@@ -29,8 +29,6 @@
 
 The system ingests and enriches research data from **arXiv** and **Semantic Scholar**. arXiv provides the paper corpus and metadata, while Semantic Scholar is used as a key citation source for building and enriching the citation graph. This allows ScholarGraph to move beyond “paper storage” into actual research discovery: users can browse papers, inspect citation structure, retrieve authors, annotate interesting papers, trigger corpus maintenance jobs, and expose high-value research actions to LLM clients through MCP.
 
-From a module perspective, the implementation intentionally applies material from the course rather than stopping at surface-level API functionality. The citation ranking pipeline directly applies **PageRank (Lecture 10)**, the ingestion flow reflects **web crawler design (Lecture 9)**, the API exposes **HAL-style HATEOAS links (Lectures 4 & 5)**, and the MCP server demonstrates how the project can be extended into a modern tool-using AI workflow. This makes ScholarGraph both technically substantial and clearly aligned with the taught material.
-
 ### Core capabilities
 
 #### Paper Discovery
@@ -98,23 +96,23 @@ From a module perspective, the implementation intentionally applies material fro
 ┌────────────────────────────┐      ┌────────────────────────────────────────┐
 │         CRUD LAYER         │      │             SERVICE LAYER              │
 │────────────────────────────│      │────────────────────────────────────────│
-│ SQLAlchemy async queries   │      │ auth / JWT / API keys                 │
-│ papers / authors / cites   │      │ embeddings / semantic search          │
-│ users / annotations        │      │ pagerank / crawler / background jobs  │
+│ SQLAlchemy async queries   │      │ auth / JWT / API keys                  │
+│ papers / authors / cites   │      │ embeddings / semantic search           │
+│ users / annotations        │      │ pagerank / crawler / background jobs   │
 └───────────────┬────────────┘      └──────────────────────┬─────────────────┘
-                │                                           │
-                └───────────────────┬───────────────────────┘
+                │                                          │
+                └───────────────────┬──────────────────────┘
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                          POSTGRESQL + PGVECTOR                              │
 │─────────────────────────────────────────────────────────────────────────────│
-│ papers / authors / paper_authors / citations / users / api_keys            │
+│ papers / authors / paper_authors / citations / users / api_keys             │
 │ annotations / abstract_embedding vectors                                    │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                       EXTERNAL RESEARCH SOURCES                              │
+│                       EXTERNAL RESEARCH SOURCES                             │
 │─────────────────────────────────────────────────────────────────────────────│
 │ arXiv API / Semantic Scholar API / background corpus enrichment             │
 └─────────────────────────────────────────────────────────────────────────────┘
