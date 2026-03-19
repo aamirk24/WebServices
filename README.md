@@ -465,4 +465,4 @@ ALLOWED_ORIGINS=["https://scholargraph.onrender.com"]
 ## Author
 
 **Aamir Khan**  
-University of Leeds — Computer Science
+University of Leeds
