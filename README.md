@@ -210,7 +210,7 @@ CRAWL_ADMIN_EMAILS=your-email@example.com
 
 ### Authentication
 
-| Method | Endpoint | Auth | Description |
+| Method | Endpoint | Auth Reqd | Description |
 |---|---|---|---|
 | POST | `/auth/register` | No | Register a new user account |
 | POST | `/auth/login` | No | Log in and receive access + refresh tokens |
@@ -222,7 +222,7 @@ CRAWL_ADMIN_EMAILS=your-email@example.com
 
 ### Papers
 
-| Method | Endpoint | Auth | Description |
+| Method | Endpoint | Auth Reqd | Description |
 |---|---|---|---|
 | GET | `/papers` | No | List papers with pagination and optional category / search filters |
 | GET | `/papers/ranked` | No | Return top papers ranked by PageRank |
@@ -234,7 +234,7 @@ CRAWL_ADMIN_EMAILS=your-email@example.com
 
 ### Authors
 
-| Method | Endpoint | Auth | Description |
+| Method | Endpoint | Auth Reqd | Description |
 |---|---|---|---|
 | GET | `/authors` | No | List authors with aggregate metrics |
 | GET | `/authors/{author_id}` | No | Return one author and their associated papers |
@@ -242,7 +242,7 @@ CRAWL_ADMIN_EMAILS=your-email@example.com
 
 ### Annotations
 
-| Method | Endpoint | Auth | Description |
+| Method | Endpoint | Auth Reqd | Description |
 |---|---|---|---|
 | POST | `/papers/{paper_id}/annotations` | Yes | Create an annotation on a paper |
 | GET | `/papers/{paper_id}/annotations` | No | List annotations for a paper |
@@ -251,7 +251,7 @@ CRAWL_ADMIN_EMAILS=your-email@example.com
 
 ### Analytics
 
-| Method | Endpoint | Auth | Description |
+| Method | Endpoint | Auth Reqd | Description |
 |---|---|---|---|
 | POST | `/analytics/pagerank` | Yes (admin) | Trigger background PageRank recomputation |
 | GET | `/analytics/topics` | No | Return topic/category analytics |
@@ -260,7 +260,7 @@ CRAWL_ADMIN_EMAILS=your-email@example.com
 
 ### Crawl / Corpus Maintenance
 
-| Method | Endpoint | Auth | Description |
+| Method | Endpoint | Auth Reqd | Description |
 |---|---|---|---|
 | POST | `/crawl` | Yes (admin) | Start a background crawl for an arXiv topic |
 | POST | `/crawl/seed-foundations` | Yes | Seed missing foundational papers |
