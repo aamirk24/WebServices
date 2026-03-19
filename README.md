@@ -140,11 +140,15 @@ Before starting, make sure you have:
 ### Get running from scratch in 5 commands
 
 ```bash
-git clone https://github.com/aamirk24/WebServices.git && cd WebServices
+git clone https://github.com/aamirk24/WebServices.git
+cd WebServices
 cp .env.example .env
 psql postgres -c "CREATE USER sguser WITH PASSWORD 'yourpassword';"
-psql postgres -c "CREATE DATABASE scholargraph OWNER sguser;" && psql scholargraph -c "CREATE EXTENSION IF NOT EXISTS vector;"
-uv sync && uv run alembic upgrade head && uv run uvicorn app.main:app --reload
+psql postgres -c "CREATE DATABASE scholargraph OWNER sguser;"
+psql scholargraph -c "CREATE EXTENSION IF NOT EXISTS vector;"
+uv sync
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload
 ```
 
 ### After startup
