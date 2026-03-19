@@ -157,15 +157,6 @@ uv run uvicorn app.main:app --reload
 - **Swagger UI:** `http://127.0.0.1:8000/docs`
 - **OpenAPI JSON:** `http://127.0.0.1:8000/openapi.json`
 
-### Notes
-
-- After copying `.env.example`, update values such as `DATABASE_URL`, `SECRET_KEY`, and any admin-email settings to match your local setup.
-- The database URL should use the user you created above, for example:
-
-```env
-DATABASE_URL=postgresql+asyncpg://sguser:yourpassword@localhost:5432/scholargraph
-```
-
 ---
 
 ## Environment Variables
@@ -201,7 +192,6 @@ CRAWL_ADMIN_EMAILS=your-email@example.com
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Yes | Access token lifespan |
 | `ENVIRONMENT` | Recommended | `development` or `production` |
 | `ALLOWED_ORIGINS` | Production | JSON list of allowed CORS origins |
-| `CRAWL_ADMIN_EMAILS` | Recommended | Comma-separated admin emails for privileged maintenance endpoints |
 | `SCHOLARGRAPH_API_KEY` | MCP only | API key used by the MCP server |
 
 ---
