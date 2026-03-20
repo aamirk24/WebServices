@@ -135,7 +135,21 @@ Before starting, make sure you have:
 - **pgvector** available in PostgreSQL
 - **uv** installed
 
-### Get running from scratch in 5 commands
+### To install pgvector run
+```bash
+git clone --branch v0.8.2 https://github.com/pgvector/pgvector.git
+cd pgvector
+make
+sudo make install
+```
+
+### To install uv run
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### Get running from scratch
 
 ```bash
 git clone https://github.com/aamirk24/WebServices.git
