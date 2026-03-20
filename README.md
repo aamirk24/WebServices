@@ -16,7 +16,6 @@
 - [Running Tests](#running-tests)
 - [Deployment Notes](#deployment-notes)
 - [Tech Stack with Justifications](#tech-stack-with-justifications)
-- [Suggested Demo Flow](#suggested-demo-flow)
 - [Author](#author)
 
 ---
