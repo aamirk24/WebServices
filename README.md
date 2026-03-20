@@ -2,8 +2,6 @@
 
 ![CI](https://github.com/aamirk24/WebServices/actions/workflows/ci.yml/badge.svg)
 
-> A FastAPI-based research paper discovery and analytics platform featuring semantic search, citation graph analysis, author impact summaries, authenticated annotations, API keys, background crawling, and MCP integration.
-
 ---
 
 ## Table of Contents
