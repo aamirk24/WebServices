@@ -159,9 +159,12 @@ psql postgres -c "CREATE USER sguser WITH PASSWORD 'yourpassword';"
 psql postgres -c "CREATE DATABASE scholargraph OWNER sguser;"
 psql scholargraph -c "CREATE EXTENSION IF NOT EXISTS vector;"
 uv sync
+uv add "psycopg[binary]"
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
+
+Before running ```bash uv run alembic upgrade head``` make sure to set the environment variables accordingly.
 
 ### After startup
 
